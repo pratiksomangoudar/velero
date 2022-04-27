@@ -21,6 +21,8 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/vmware-tanzu/velero/pkg/metrics"
 )
 
 // BackupTracker keeps track of in-progress backups.
@@ -34,14 +36,16 @@ type BackupTracker interface {
 }
 
 type backupTracker struct {
+	metrics *metrics.ServerMetrics
 	lock    sync.RWMutex
 	backups sets.String
 }
 
 // NewBackupTracker returns a new BackupTracker.
-func NewBackupTracker() BackupTracker {
+func NewBackupTracker(metrics *metrics.ServerMetrics) BackupTracker {
 	return &backupTracker{
 		backups: sets.NewString(),
+		metrics: metrics,
 	}
 }
 
@@ -50,6 +54,7 @@ func (bt *backupTracker) Add(ns, name string) {
 	defer bt.lock.Unlock()
 
 	bt.backups.Insert(backupTrackerKey(ns, name))
+	bt.metrics.SetBackupActiveTotal(int64(bt.backups.Len()))
 }
 
 func (bt *backupTracker) Delete(ns, name string) {
@@ -57,6 +62,7 @@ func (bt *backupTracker) Delete(ns, name string) {
 	defer bt.lock.Unlock()
 
 	bt.backups.Delete(backupTrackerKey(ns, name))
+	bt.metrics.SetBackupActiveTotal(int64(bt.backups.Len()))
 }
 
 func (bt *backupTracker) Contains(ns, name string) bool {

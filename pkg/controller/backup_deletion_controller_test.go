@@ -56,7 +56,7 @@ import (
 func TestBackupDeletionControllerProcessQueueItem(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	sharedInformers := informers.NewSharedInformerFactory(client, 0)
-
+	metrics := metrics.NewServerMetrics()
 	controller := NewBackupDeletionController(
 		velerotest.NewLogger(),
 		sharedInformers.Velero().V1().DeleteBackupRequests(),
@@ -64,7 +64,7 @@ func TestBackupDeletionControllerProcessQueueItem(t *testing.T) {
 		client.VeleroV1(), // backupClient
 		sharedInformers.Velero().V1().Restores().Lister(),
 		client.VeleroV1(), // restoreClient
-		NewBackupTracker(),
+		NewBackupTracker(metrics),
 		nil, // restic repository manager
 		sharedInformers.Velero().V1().PodVolumeBackups().Lister(),
 		nil,
@@ -74,7 +74,7 @@ func TestBackupDeletionControllerProcessQueueItem(t *testing.T) {
 		nil, // csiSnapshotClient
 		nil, // new plugin manager func
 		nil, // backupStoreGetter
-		metrics.NewServerMetrics(),
+		metrics,
 		nil, // discovery helper
 	).(*backupDeletionController)
 
@@ -149,6 +149,7 @@ func setupBackupDeletionControllerTest(t *testing.T, objects ...runtime.Object) 
 		backupStore       = &persistencemocks.BackupStore{}
 	)
 
+	metrics := metrics.NewServerMetrics()
 	data := &backupDeletionControllerTestData{
 		client:            client,
 		fakeClient:        fakeClient,
@@ -162,7 +163,7 @@ func setupBackupDeletionControllerTest(t *testing.T, objects ...runtime.Object) 
 			client.VeleroV1(), // backupClient
 			sharedInformers.Velero().V1().Restores().Lister(),
 			client.VeleroV1(), // restoreClient
-			NewBackupTracker(),
+			NewBackupTracker(metrics),
 			nil, // restic repository manager
 			sharedInformers.Velero().V1().PodVolumeBackups().Lister(),
 			fakeClient,
@@ -172,7 +173,7 @@ func setupBackupDeletionControllerTest(t *testing.T, objects ...runtime.Object) 
 			nil, // csiSnapshotClient
 			func(logrus.FieldLogger) clientmgmt.Manager { return pluginManager },
 			NewFakeSingleObjectBackupStoreGetter(backupStore),
-			metrics.NewServerMetrics(),
+			metrics,
 			nil, // discovery helper
 		).(*backupDeletionController),
 
@@ -1135,6 +1136,7 @@ func TestBackupDeletionControllerDeleteExpiredRequests(t *testing.T) {
 			client := fake.NewSimpleClientset()
 			fakeClient := velerotest.NewFakeControllerRuntimeClient(t)
 			sharedInformers := informers.NewSharedInformerFactory(client, 0)
+			metrics:=metrics.NewServerMetrics()
 
 			controller := NewBackupDeletionController(
 				velerotest.NewLogger(),
@@ -1143,7 +1145,7 @@ func TestBackupDeletionControllerDeleteExpiredRequests(t *testing.T) {
 				client.VeleroV1(), // backupClient
 				sharedInformers.Velero().V1().Restores().Lister(),
 				client.VeleroV1(), // restoreClient
-				NewBackupTracker(),
+				NewBackupTracker(metrics),
 				nil,
 				sharedInformers.Velero().V1().PodVolumeBackups().Lister(),
 				fakeClient,
@@ -1153,7 +1155,7 @@ func TestBackupDeletionControllerDeleteExpiredRequests(t *testing.T) {
 				nil, // csiSnapshotClient
 				nil, // new plugin manager func
 				nil, // backupStoreGetter
-				metrics.NewServerMetrics(),
+				metrics,
 				nil, // discovery helper,
 			).(*backupDeletionController)
 

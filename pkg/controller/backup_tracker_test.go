@@ -20,10 +20,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/vmware-tanzu/velero/pkg/metrics"
 )
 
 func TestBackupTracker(t *testing.T) {
-	bt := NewBackupTracker()
+	
+	metrics:=metrics.NewServerMetrics()
+	bt := NewBackupTracker(metrics)
 
 	assert.False(t, bt.Contains("ns", "name"))
 
